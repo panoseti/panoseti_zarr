@@ -12,7 +12,7 @@ import os
 import asyncio
 import time
 from pathlib import Path
-from dask.distributed import Client, SSHCluster
+from dask.distributed import Client, SSHCluster, LocalCluster
 
 try:
     import tomllib  # Python 3.11+
@@ -50,7 +50,7 @@ def load_cluster_config(config_path: str = "config.toml") -> dict:
     return config
 
 
-async def create_dask_cluster(config: dict):
+async def create_dask_cluster(cluster_cfg: dict):
     """
     Create a new Dask SSH cluster based on configuration.
 
@@ -61,17 +61,29 @@ async def create_dask_cluster(config: dict):
     cluster : dask.distributed.SSHCluster
         Cluster object for lifecycle management
     """
-    use_dask = config.get('use_dask', False)
+    use_dask = cluster_cfg.get('use_dask', False)
+    ssh_hosts = cluster_cfg.get('ssh_hosts', [])
 
     if not use_dask:
         print("Dask disabled - operations will use local processing")
         return None, None
 
+    # If ssh_hosts is only localhost or empty, use LocalCluster
+    if ssh_hosts == ['localhost'] or not ssh_hosts:
+        cluster = LocalCluster(
+            n_workers=cluster_cfg.get('ssh_workers_per_host', 1),
+            threads_per_worker=cluster_cfg.get('ssh_threads_per_worker', 16),
+            memory_limit=cluster_cfg.get('ssh_memory_per_worker', '16GB'),
+            dashboard_address=':8787'
+        )
+        client = await Client(cluster, asynchronous=True)
+        return client, cluster
+
     # Create SSH cluster
-    ssh_hosts = config.get('ssh_hosts', ['localhost'])
-    workers_per_host = config.get('ssh_workers_per_host', 1)
-    threads_per_worker = config.get('ssh_threads_per_worker', 16)
-    memory_per_worker = config.get('ssh_memory_per_worker', '16GB')
+    # ssh_hosts = config.get('ssh_hosts', ['localhost'])
+    workers_per_host = cluster_cfg.get('ssh_workers_per_host', 1)
+    threads_per_worker = cluster_cfg.get('ssh_threads_per_worker', 16)
+    memory_per_worker = cluster_cfg.get('ssh_memory_per_worker', '16GB')
 
     print(f"\nCreating Dask SSH Cluster:")
     print(f"  Hosts: {ssh_hosts}")

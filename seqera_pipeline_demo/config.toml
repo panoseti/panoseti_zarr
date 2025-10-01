@@ -12,7 +12,7 @@
 use_dask = true  # Set to false to use local multiprocessing instead
 
 # SSH Cluster Configuration
-ssh_hosts = ["localhost", "panoseti-dfs0", "panoseti-dfs1", "panoseti-dfs2"]
+ssh_hosts = ["localhost"]#, "panoseti-dfs0", "panoseti-dfs1", "panoseti-dfs2"]
 ssh_workers_per_host = 1
 ssh_threads_per_worker = 16
 ssh_memory_per_worker = "16GB"
