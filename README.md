@@ -18,14 +18,53 @@ pip install -r requirements.txt
 ```
 
 
-## Pipeline Overview
+## Pipeline Architecture
 
-This basic pipeline processes PANOSETI File Format (PFF) files in two stages:
+The pipeline consists of three independent steps:
 
-1. **Step 1 (L0):** Convert PFF binary files to Zarr format with compression
-2. **Step 2 (L1):** Apply baseline subtraction to produce science-ready data
+### Step 0: Dask Cluster Setup
+```bash
+python step0_setup_cluster.py config.toml /tmp/scheduler.txt
+```
+- Initializes Dask SSH cluster based on `[cluster]` config
+- Writes scheduler address to file
+- Runs persistently until interrupted
+- Can be replaced with any cluster management solution
 
-The pipeline supports both **distributed computing** via Dask clusters and **local multiprocessing** modes.
+### Step 1: PFF to Zarr Conversion
+```bash
+python step1_pff_to_zarr.py input.pff output_L0.zarr config.toml [scheduler_address]
+```
+- Converts PFF binary format to Zarr v3
+- Connects to existing cluster if scheduler address provided
+- Falls back to local multiprocessing otherwise
+
+### Step 2: Baseline Subtraction
+```bash
+python step2_dask_baseline.py input_L0.zarr output_L1.zarr --config config.toml [--dask-scheduler address]
+```
+
+- Applies baseline correction
+- Connects to existing cluster if scheduler address provided
+- Falls back to local threading otherwise
+
+### Orchestration
+```bash
+./run.sh file1.pff file2.pff /output/dir
+```
+- Automatically manages all three steps
+- Handles cluster lifecycle
+- Guarantees cleanup on exit with the `trap` command.
+
+## Replacing Cluster Setup
+
+To use a different cluster manager:
+
+1. Replace `step0_setup_cluster.py` with your implementation
+2. Ensure it writes the scheduler address to the specified file
+3. The address format should be: `tcp://host:port`
+4. Steps 1 and 2 will automatically connect to any valid Dask scheduler
+
 
 ## Using the `run.sh` Script
 
