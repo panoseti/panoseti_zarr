@@ -313,7 +313,7 @@ compute_chunk_size = 8192   # Dask computation rechunk size
 [pff_to_zarr]
 codec = "blosc-lz4"
 level = 1
-time_chunk = 65536              # Large chunks for sequential reads
+time_chunk = 8192              # Large chunks for sequential reads
 max_concurrent_writes = 12
 num_workers = 8
 
